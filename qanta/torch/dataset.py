@@ -80,7 +80,7 @@ class LongField(RawField):
 
 
 class QBVocab(Vocab):
-    def load_vectors(self, vectors):
+    def load_vectors(self, vectors, **kwargs):
         if not isinstance(vectors, list):
             vectors = [vectors]
         for idx, vector in enumerate(vectors):
