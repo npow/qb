@@ -130,7 +130,7 @@ class RnnModel(nn.Module):
         :param hidden: hidden state
         :return:
         """
-        embed = self.text_embeddings(text_input)
+        embed = self.text_embeddings(text_input.cuda())
         embed = self.dropout(embed)
 
         packed_input = nn.utils.rnn.pack_padded_sequence(embed, lengths, batch_first=True)
@@ -286,7 +286,7 @@ class RnnGuesser(AbstractGuesser):
                 batch_size = len(lengths)
                 hidden_init = self.model.init_hidden(batch_size)
 
-            page = batch.page
+            page = batch.page.cuda()
             qanta_ids = batch.qanta_id.cuda()
 
             if is_train:
@@ -296,15 +296,15 @@ class RnnGuesser(AbstractGuesser):
                 text, lengths, hidden_init, qanta_ids
             )
             _, preds = torch.max(out, 1)
-            accuracy = torch.mean(torch.eq(preds, page).float()).data[0]
+            accuracy = torch.mean(torch.eq(preds, page).float()).data.item()
             batch_loss = self.criterion(out, page)
             if is_train:
                 batch_loss.backward()
-                torch.nn.utils.clip_grad_norm(self.model.parameters(), self.gradient_clip)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.gradient_clip)
                 self.optimizer.step()
 
             batch_accuracies.append(accuracy)
-            batch_losses.append(batch_loss.data[0])
+            batch_losses.append(batch_loss.data.item())
 
         epoch_end = time.time()
 
