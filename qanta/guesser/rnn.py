@@ -335,7 +335,7 @@ class RnnGuesser(AbstractGuesser):
         rev_order = np.argsort(order)
         ordered_examples = padded_examples[order]
         ordered_lengths = lengths[order]
-        text, lengths = self.text_field.numericalize((ordered_examples, ordered_lengths), device=None, train=False)
+        text, lengths = self.text_field.numericalize((ordered_examples, ordered_lengths), device=None)
         lengths = list(lengths.cpu().numpy())
 
         qanta_ids = self.qanta_id_field.process([0 for _ in questions]).cuda()

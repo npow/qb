@@ -176,7 +176,7 @@ class DanModel(nn.Module):
 
     def _pool(self, embed, lengths, batch_size):
         if self.pooling == 'avg':
-            return embed.sum(1) / lengths.view(batch_size, -1)
+            return embed.sum(1) / lengths.view(batch_size, -1).cuda()
         elif self.pooling == 'max':
             emb_max, _ = torch.max(embed, 1)
             return emb_max
@@ -195,7 +195,7 @@ class DanModel(nn.Module):
                 lengths[key] = Variable(lengths[key].float(), volatile=not self.training)
 
         if self.text_field is not None:
-            text_input = input_['text']
+            text_input = input_['text'].cuda()
             embed = self.text_embeddings(text_input)
             embed = self._pool(embed, lengths['text'].float(), text_input.size()[0])
             embed = self.dropout(embed)
@@ -204,21 +204,21 @@ class DanModel(nn.Module):
         else:
             embedding_list = []
             if self.unigram_field is not None:
-                unigram_input = input_['unigram']
+                unigram_input = input_['unigram'].cuda()
                 embed = self.unigram_embeddings(unigram_input)
                 embed = self._pool(embed, lengths['unigram'].float, unigram_input.size()[0])
                 embed = self.dropout(embed)
                 embedding_list.append(embed)
 
             if self.bigram_field is not None:
-                bigram_input = input_['bigram']
+                bigram_input = input_['bigram'].cuda()
                 embed = self.bigram_embeddings(bigram_input)
                 embed = self._pool(embed, lengths['bigram'].float, bigram_input.size()[0])
                 embed = self.dropout(embed)
                 embedding_list.append(embed)
 
             if self.trigram_field is not None:
-                trigram_input = input_['trigram']
+                trigram_input = input_['trigram'].cuda()
                 embed = self.trigram_embeddings(trigram_input)
                 embed = self._pool(embed, lengths['trigram'].float, trigram_input.size()[0])
                 embed = self.dropout(embed)
@@ -390,7 +390,7 @@ class DanGuesser(AbstractGuesser):
                 input_dict['trigram'] = text
                 lengths_dict['trigram'] = lengths
 
-            page = batch.page
+            page = batch.page.cuda()
             qanta_ids = batch.qanta_id.cuda()
 
             if is_train:
@@ -398,7 +398,7 @@ class DanGuesser(AbstractGuesser):
 
             out = self.model(input_dict, lengths_dict, qanta_ids)
             _, preds = torch.max(out, 1)
-            accuracy = torch.mean(torch.eq(preds, page).float()).data[0]
+            accuracy = torch.mean(torch.eq(preds, page).float()).data.item()
             batch_loss = self.criterion(out, page)
             if is_train:
                 batch_loss.backward()
@@ -406,7 +406,7 @@ class DanGuesser(AbstractGuesser):
                 self.optimizer.step()
 
             batch_accuracies.append(accuracy)
-            batch_losses.append(batch_loss.data[0])
+            batch_losses.append(batch_loss.data.item())
 
         epoch_end = time.time()
 
@@ -433,22 +433,22 @@ class DanGuesser(AbstractGuesser):
         lengths_dict = {}
         if self.text_field is not None:
             examples = [self.text_field.preprocess(q) for q in questions]
-            text, lengths = self.text_field.process(examples, None, False)
+            text, lengths = self.text_field.process(examples, None)
             input_dict['text'] = text
             lengths_dict['text'] = lengths
         if self.unigram_field is not None:
             examples = [self.unigram_field.preprocess(q) for q in questions]
-            text, lengths = self.unigram_field.process(examples, None, False)
+            text, lengths = self.unigram_field.process(examples, None)
             input_dict['unigram'] = text
             lengths_dict['unigram'] = lengths
         if self.bigram_field is not None:
             examples = [self.bigram_field.preprocess(q) for q in questions]
-            text, lengths = self.bigram_field.process(examples, None, False)
+            text, lengths = self.bigram_field.process(examples, None)
             input_dict['bigram'] = text
             lengths_dict['bigram'] = lengths
         if self.trigram_field is not None:
             examples = [self.trigram_field.preprocess(q) for q in questions]
-            text, lengths = self.trigram_field.process(examples, None, False)
+            text, lengths = self.trigram_field.process(examples, None)
             input_dict['trigram'] = text
             lengths_dict['trigram'] = lengths
         qanta_ids = self.qanta_id_field.process([0 for _ in questions]).cuda()
