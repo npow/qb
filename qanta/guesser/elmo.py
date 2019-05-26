@@ -167,7 +167,7 @@ class ElmoGuesser(AbstractGuesser):
                 torch.nn.utils.clip_grad_norm(self.model.parameters(), .25)
                 self.optimizer.step()
             batch_accuracies.append(accuracy)
-            batch_losses.append(batch_loss.data[0])
+            batch_losses.append(batch_loss.data.item())
         epoch_end = time.time()
 
         return np.mean(batch_accuracies), np.mean(batch_losses), epoch_end - epoch_start
